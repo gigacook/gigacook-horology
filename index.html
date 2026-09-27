@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boskovic Watch Co.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Great+Vibes&family=Inter:wght@400;500;600;700&family=Josefin+Sans:wght@300;600&family=Michroma&family=Montserrat:ital,wght@0,400;0,500;0,700;1,400;1,600;1,700&family=Orbitron:wght@500;800&family=Oswald:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<header class="top">
+  <div class="logo">BOSKOVIC<span>watch co.</span></div>
+  <nav class="presets" id="presets" aria-label="Presets"></nav>
+  <div class="actions">
+    <button id="btnRandom" class="ghost" title="Randomize everything">⚄ Random</button>
+    <button id="btnShare" class="ghost" title="Copy a link to this design">Copy link</button>
+    <button id="btnSpec" class="ghost">Spec sheet</button>
+    <button id="btnRender" class="render">Render <b>✦</b></button>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="preview-wrap" id="previewWrap"><canvas id="preview"></canvas></div>
+    <div class="under">
+      <div class="dims" id="dims"></div>
+      <div class="thumbs">
+        <figure><canvas id="profile"></canvas><figcaption>Profile</figcaption></figure>
+        <figure><canvas id="back"></canvas><figcaption>Caseback</figcaption></figure>
+      </div>
+    </div>
+  </section>
+  <aside class="panel" id="panel"></aside>
+</main>
+
+<div id="render" class="render-overlay" hidden>
+  <div id="glwrap"></div>
+  <div class="hud-top">
+    <div class="hud-title"><div id="hudBrand"></div><small id="hudRef"></small></div>
+    <div class="hud-right">
+      <button id="rClose" class="glass">← Back to builder</button>
+      <div class="lightpanel" id="rLightPanel"></div>
+    </div>
+  </div>
+  <div class="hud-bottom">
+    <button class="glass" id="rRotate">Turntable: on</button>
+    <button class="glass" id="rExplode">Exploded view</button>
+    <button class="glass" id="rLights">Lights out (lume)</button>
+    <button class="glass" id="rVitrine">Vitrine: off</button>
+    <button class="glass" id="rPillow">Cushion: cream</button>
+    <button class="glass" id="rShot">Save image</button>
+    <button class="glass gold" id="rSpec">Spec sheet</button>
+  </div>
+  <div class="loading" id="rLoading"><div class="spin"></div><p>Setting up the showcase…</p></div>
+</div>
+
+<div id="spec" class="modal" hidden>
+  <div class="sheet" id="sheet"></div>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="draw.js"></script>
+<script src="app.js"></script>
+<script src="render3d.js"></script>
+</body>
+</html>
