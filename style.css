@@ -81,6 +81,11 @@ input[type=text]:focus,select:focus{outline:none;border-color:var(--gold)}
 .hud-bottom{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100% - 32px)}
 .hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .lightpanel{width:230px;background:#141417cc;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #ffffff22;border-radius:12px;padding:10px 14px 6px}
+.lightpanel summary{cursor:pointer;list-style:none;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#e7e3da;padding:2px 0 4px}
+.lightpanel summary::-webkit-details-marker{display:none}
+.lightpanel summary::after{content:" ▾";color:var(--gold2)}
+.lightpanel[open] summary{margin-bottom:8px}
+.lightpanel:not([open]){width:auto;padding:8px 14px}
 .lightpanel label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9c978c;margin-bottom:6px}
 .lightpanel label span{float:right;color:var(--gold2);letter-spacing:0}
 .lightpanel input{margin:2px 0 0}
@@ -126,7 +131,9 @@ input[type=text]:focus,select:focus{outline:none;border-color:var(--gold)}
 @media (max-width:900px){
   body{overflow:auto}
   main{flex-direction:column;height:auto}
-  .stage{height:78vh}
+  /* keep the watch pinned on top while scrolling the controls on phones */
+  .stage{position:sticky;top:0;z-index:5;height:46vh;height:46svh;border-bottom:1px solid var(--line)}
+  .under{display:none}
   .panel{width:100%;border-left:0}
   .top{flex-wrap:wrap;height:auto;padding:10px 16px}
   main{min-height:calc(100vh - 58px)}

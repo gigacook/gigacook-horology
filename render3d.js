@@ -382,7 +382,7 @@ window.Render3D = (() => {
     placard = new T.Mesh(new T.PlaneGeometry(130, 51), new T.MeshStandardMaterial({ map:placardTex(S, g), roughness:.6 })); placard.position.set(0, -110, 95.6); scene.add(placard);
     assembly.updateMatrixWorld(true);
     st.target = head.localToWorld(V(0, 0, g.T/2));
-    st.camTo = st.target.clone().add(V(62, 92, 178)); st.camFrom = st.target.clone().add(V(-260, 340, 820));
+    st.camTo = st.target.clone().add(V(105, 155, 300)); st.camFrom = st.target.clone().add(V(-260, 340, 820));
     camera.position.copy(st.camFrom); controls.target.copy(st.target); st.intro = 0;
     key.target.position.copy(st.target); rim.target.position.copy(st.target);
     q('#hudBrand').textContent = (S.brandUpper ? S.brand.toUpperCase() : S.brand) || 'BOSKOVIC';
