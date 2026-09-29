@@ -70,6 +70,8 @@ function metalGrad(ctx, m, x0, y0, x1, y1, mode = 'poly'){
   const g = ctx.createLinearGradient(x0, y0, x1, y1), c = m.c;
   if (mode === 'facet'){ g.addColorStop(0,c[2]); g.addColorStop(.5,c[0]); g.addColorStop(.5,c[3]); g.addColorStop(1,c[1]); }
   else if (mode === 'brushed'){ g.addColorStop(0,c[4]); g.addColorStop(.4,c[2]); g.addColorStop(.7,c[4]); g.addColorStop(1,c[1]); }
+  else if (mode === 'matte'){ g.addColorStop(0,c[4]); g.addColorStop(.5,c[2]); g.addColorStop(1,c[4]); }
+  else if (mode === 'mirror'){ g.addColorStop(0,c[3]); g.addColorStop(.3,c[0]); g.addColorStop(.46,c[0]); g.addColorStop(.5,c[3]); g.addColorStop(.62,c[1]); g.addColorStop(1,c[2]); }
   else { g.addColorStop(0,c[0]); g.addColorStop(.28,c[1]); g.addColorStop(.5,c[2]); g.addColorStop(.72,c[3]); g.addColorStop(1,c[4]); }
   return g;
 }
@@ -96,12 +98,19 @@ function textOnCircle(ctx, str, r, size, font, ca, o = {}){
   ctx.restore();
 }
 
+// case finish → 2D gradient mode per surface (lug tops / case middle)
+const FINISH = { polished:{ lug:'poly', mid:'poly' }, brushed:{ lug:'brushed', mid:'brushed' }, mixed:{ lug:'brushed', mid:'poly' }, blasted:{ lug:'matte', mid:'matte' }, zaratsu:{ lug:'mirror', mid:'mirror' } };
+const finOf = S => FINISH[S.caseFinish] || FINISH.mixed;
+// dial name: up to two lines; the second line is set as a smaller tracked descriptor
+const brandLines = S => String(S.brand || '').split('\n').map(t => t.trim()).filter(Boolean).slice(0, 2);
+const brandLabel = S => brandLines(S).join(' ');
+
 /* ---------------- geometry (all in mm, y-up, origin = dial centre) ---------------- */
 const INSERT_BEZELS = ['diver','gmt','tachy'];
 function geo(S){
   const C = CASES[S.caseStyle], D = +S.diameter, cr = D / 2, cs = D / 40;
-  const lugW = Math.max(16, Math.round(D * .5 / 2) * 2);
-  const l2l = +(D * C.l2l).toFixed(1), yE = l2l / 2;
+  const lugW = +S.lugW > 0 ? Math.min(+S.lugW, Math.round(D*.66)) : Math.max(16, Math.round(D * .5 / 2) * 2);
+  const l2l = +S.l2l > 0 ? Math.max(+S.l2l, D + 2) : +(D * C.l2l).toFixed(1), yE = l2l / 2;
   const insert = INSERT_BEZELS.includes(S.bezelType);
   const bzO = C.cushion ? cr * .84 : insert ? cr + .15 : cr - .3;
   const bzW = Math.min(+S.bezelW, bzO * .25), bzI = bzO - bzW, R = bzI - .6;
@@ -113,7 +122,7 @@ function geo(S){
   const T = cb + midH + bh + cry;
   const cw = { smooth:[5.4,2.8], fluted:[6,3], onion:[5.2,3.4], screw:[7,3.4], cabochon:[5.6,3.2], pilot:[8,4.2] }[S.crown];
   return { C, D, cr, cs, lugW, l2l, yE, insert, bzO, bzW, bzI, R, cb, midH, bh, cry, T, mv,
-    cd: cw[0]*cs, cl: cw[1]*cs, lugT: C.lugT*cs, y0: cr*.45 };
+    cd: cw[0]*cs, cl: cw[1]*cs, lugT: C.lugT*cs, y0: cr*.45, eb: Math.min(Math.max(+S.edgeBreak || .5, .05), 1.2) };
 }
 function lugPoly(g){
   const xi = g.lugW/2, xo = xi + g.lugT, y0 = g.y0, yE = g.yE, N = 14, P = [];
@@ -223,6 +232,7 @@ function markerSet(S, g){
       case 'diver': if (i === 0) tri(a,R*.2,R*.2); else if (i%3 === 0) bar(a,R*.085,R*.2); else dot(a,R*.058,rO-R*.07); break;
       case 'explorer': if (i === 0) tri(a,R*.18,R*.18); else if (i%3 === 0) num(i,String(i),rO-R*.1,R*.2,false); else bar(a,R*.05,R*.15); break;
       case 'arabic': num(i, String(i || 12), R*.74, R*.16, false); break;
+      case 'flieger': if (i === 0){ tri(a,R*.15,R*.19); dot(-.14,R*.028,rO-R*.03); dot(.14,R*.028,rO-R*.03); } else num(i, String(i), R*.75, R*.17, false); break;
       case 'roman': num(i, ROMAN[i], R*.75, R*.13, true); break;
       case 'dots': if (i === 0) bar(a,R*.05,R*.12); else dot(a,R*.035,rO-R*.04); break;
       case 'minimal': if (i%3 === 0) bar(a,R*.055,R*.14); else items.push({ a, k:'p', pts:circlePts(R*.014,16,0,rO-R*.03) }); break;
@@ -321,9 +331,14 @@ function drawMarkers(ctx, S, g, mode){
   }
 }
 function drawBrand(ctx, S, g){
-  const R = g.R, col = S.brandColor === 'auto' ? printC(S) : S.brandColor;
-  const s = S.brandUpper ? S.brand.toUpperCase() : S.brand;
-  txt(ctx, s, 0, R*S.brandY, +S.brandSize, fam(S.brandFont), { weight:S.brandWeight, italic:S.brandItalic, ls:+S.brandSpacing, color:col });
+  const R = g.R, col = S.brandColor === 'auto' ? printC(S) : S.brandColor, L = brandLines(S), s1 = +S.brandSize, f = fam(S.brandFont);
+  const o = { weight:S.brandWeight, italic:S.brandItalic, ls:+S.brandSpacing, color:col };
+  if (L.length < 2) txt(ctx, S.brandUpper ? (L[0] || '').toUpperCase() : (L[0] || ''), 0, R*S.brandY, s1, f, o);
+  else {
+    const s2 = s1 * (+S.brandLine2 || .5), gap = s1 * .34, h = s1*.72 + gap + s2*.72, top = R*S.brandY + h/2;
+    txt(ctx, S.brandUpper ? L[0].toUpperCase() : L[0], 0, top - s1*.36, s1, f, o);
+    txt(ctx, L[1].toUpperCase(), 0, top - s1*.72 - gap - s2*.36, s2, f, { ...o, italic:false, ls:Math.max(+S.brandSpacing, .16) });
+  }
   if (S.subShow && S.subtitle) txt(ctx, S.subtitle.toUpperCase(), 0, -R*.36, R*.05, 'Montserrat, sans-serif', { weight:500, ls:.18, color:col });
 }
 function drawDate(ctx, S, g, mag = 1){
@@ -403,7 +418,7 @@ function drawInsert(ctx, S, g, mode = 'full'){
 }
 function drawBezel(ctx, S, g){
   const m = MATS[S.caseMat], { bzI, bzO } = g, ring = (a,b) => { ctx.beginPath(); ctx.arc(0,0,a,0,TAU); ctx.arc(0,0,b,0,TAU,true); };
-  ring(bzO, bzI); shadow(ctx,1,.4,.45); ctx.fillStyle = metalGrad(ctx,m,-bzO,bzO,bzO,-bzO,S.caseFinish === 'brushed' ? 'brushed' : 'poly'); ctx.fill('evenodd'); noShadow(ctx);
+  ring(bzO, bzI); shadow(ctx,1,.4,.45); ctx.fillStyle = metalGrad(ctx,m,-bzO,bzO,bzO,-bzO,{ brushed:'brushed', blasted:'matte', zaratsu:'mirror' }[S.caseFinish] || 'poly'); ctx.fill('evenodd'); noShadow(ctx);
   if (S.bezelType === 'fluted'){
     const N = Math.round(bzO*4.2);
     for (let i = 0; i < N; i++){ const a0 = i/N*TAU, a1 = (i+.5)/N*TAU, a2 = (i+1)/N*TAU, k = .5 + .5*Math.cos(a0 - 2.4);
@@ -439,10 +454,12 @@ function drawCase(ctx, S, g){
   drawCrown(ctx, S, g);
   ctx.save(); shadow(ctx,2.6,1.3,.35); ctx.fillStyle = m.c[1];
   lugs.forEach(l => { ctx.beginPath(); poly(ctx,l); ctx.fill(); }); ctx.beginPath(); poly(ctx,out); ctx.fill(); ctx.restore();
-  lugs.forEach(l => { const b = bbox(l); ctx.beginPath(); poly(ctx,l); ctx.fillStyle = metalGrad(ctx,m,b.x0,b.y1,b.x1,b.y0,fin === 'polished' ? 'poly' : 'brushed'); ctx.fill();
-    if (fin !== 'brushed' || g.C.lug === 'facet'){ ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = .22; ctx.stroke(); } });
+  const F = finOf(S), prof = S.edgeProfile || 'round';
+  lugs.forEach(l => { const b = bbox(l); ctx.beginPath(); poly(ctx,l); ctx.fillStyle = metalGrad(ctx,m,b.x0,b.y1,b.x1,b.y0,F.lug); ctx.fill();
+    // edge break / chamfer: a polished band whose width follows the radius
+    if (fin !== 'blasted'){ ctx.strokeStyle = prof === 'chamfer' ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.55)'; ctx.lineWidth = prof === 'sharp' ? .08 : (prof === 'chamfer' ? .18 : .1) + g.eb*.35; ctx.stroke(); } });
   if (S.crownGuards) guardPolys(g).forEach(p => { const b = bbox(p); ctx.beginPath(); poly(ctx,p); ctx.fillStyle = metalGrad(ctx,m,b.x0,b.y1,b.x1,b.y0); ctx.fill(); });
-  ctx.beginPath(); poly(ctx,out); ctx.fillStyle = metalGrad(ctx,m,-g.cr,g.cr,g.cr,-g.cr,fin === 'brushed' ? 'brushed' : 'poly'); ctx.fill();
+  ctx.beginPath(); poly(ctx,out); ctx.fillStyle = metalGrad(ctx,m,-g.cr,g.cr,g.cr,-g.cr,F.mid); ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = .15; ctx.stroke();
 }
 const STRAP_TH = { oyster:3.2, jubilee:3.0, mesh:2.4, rubber:3.5, leather:3.2, nato:1.2 };
@@ -515,7 +532,7 @@ function drawCyclops(ctx, S, g){
 
 /* ---------------- movement + caseback art ---------------- */
 function drawMovement(ctx, S, r, rotorA = .6, withRotor = true){
-  const mv = S.movement, M = MOVEMENTS[mv], rn = rng(5), brand = (S.brand || 'BOSKOVIC').toUpperCase();
+  const mv = S.movement, M = MOVEMENTS[mv], rn = rng(5), brand = (brandLabel(S) || 'GC-TIME').toUpperCase();
   ctx.save(); ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.clip();
   ctx.fillStyle = '#c4c7cb'; ctx.fillRect(-r,-r,2*r,2*r);
   ctx.lineWidth = r*.012;
@@ -608,6 +625,6 @@ function drawEngraving(ctx, S, r){
     for (let i = 0; i < 8; i++){ ctx.lineWidth = r*.008; line(ctx,[0,0],polar(r*.4,i/8*TAU)); } }
   else if (e === 'crest'){ const s = r*.42; ctx.beginPath(); ctx.moveTo(-s*.7,s*.7); ctx.lineTo(s*.7,s*.7); ctx.lineTo(s*.7,0); ctx.quadraticCurveTo(s*.6,-s*.6,0,-s*.9); ctx.quadraticCurveTo(-s*.6,-s*.6,-s*.7,0); ctx.closePath(); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-s*.55,-s*.05); ctx.lineTo(0,s*.4); ctx.lineTo(s*.55,-s*.05); ctx.stroke(); }
-  else { txt(ctx, (S.brand || '').toUpperCase(), 0, r*.12, r*.13, fam(S.brandFont), { weight:700, color:dark, emboss:lite }); txt(ctx, 'N° 0427', 0, -r*.12, r*.09, 'Montserrat, sans-serif', { weight:600, color:dark, emboss:lite }); }
+  else { txt(ctx, brandLabel(S).toUpperCase(), 0, r*.12, r*.13, fam(S.brandFont), { weight:700, color:dark, emboss:lite }); txt(ctx, 'N° 0427', 0, -r*.12, r*.09, 'Montserrat, sans-serif', { weight:600, color:dark, emboss:lite }); }
   ctx.restore();
 }

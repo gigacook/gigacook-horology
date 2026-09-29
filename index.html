@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Boskovic Watch Co.</title>
+<title>Gigacook Horology</title>
+<meta name="description" content="Gigacook Horology (GC-TIME) — design your own watch, render it, and download its spec sheet.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Great+Vibes&family=Inter:wght@400;500;600;700&family=Josefin+Sans:wght@300;600&family=Michroma&family=Montserrat:ital,wght@0,400;0,500;0,700;1,400;1,600;1,700&family=Orbitron:wght@500;800&family=Oswald:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Great+Vibes&family=Inter:wght@400;500;600;700&family=Josefin+Sans:wght@300;600;700&family=Michroma&family=Montserrat:ital,wght@0,400;0,500;0,700;1,400;1,600;1,700&family=Orbitron:wght@400;500;800&family=Oswald:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script type="importmap">
 { "imports": {
@@ -16,12 +17,20 @@
 </script>
 </head>
 <body>
+<div class="app">
 <header class="top">
-  <div class="logo">BOSKOVIC<span>watch co.</span></div>
-  <nav class="presets" id="presets" aria-label="Presets"></nav>
+  <div class="logo" title="Gigacook Horology · GC-TIME"><span class="full">GIGACOOK<span>horology</span></span><span class="short">GC-TIME</span></div>
+  <div class="dd">
+    <button id="btnPresets" class="ghost">Presets ▾</button>
+    <div class="pop presets" id="presets" hidden></div>
+  </div>
   <div class="actions">
-    <button id="btnRandom" class="ghost" title="Randomize everything">⚄ Random</button>
-    <button id="btnShare" class="ghost" title="Copy a link to this design">Copy link</button>
+    <div class="dd">
+      <button id="btnInfo" class="ghost icon" title="About Gigacook Horology" aria-label="About">?</button>
+      <div class="pop info" id="infoPop" hidden></div>
+    </div>
+    <button id="btnRandom" class="ghost" title="Randomize everything">⚄<span class="wide"> Random</span></button>
+    <button id="btnShare" class="ghost" title="Copy a link to this design">Copy<span class="wide"> link</span></button>
     <button id="btnSpec" class="ghost">Spec sheet</button>
     <button id="btnRender" class="render">Render <b>✦</b></button>
   </div>
@@ -29,41 +38,67 @@
 
 <main>
   <section class="stage">
-    <div class="preview-wrap" id="previewWrap"><canvas id="preview"></canvas></div>
+    <div class="preview-wrap" id="previewWrap"><canvas id="preview"></canvas><div class="size-badge" id="sizeBadge"></div></div>
     <div class="under">
       <div class="dims" id="dims"></div>
       <div class="thumbs">
-        <figure><canvas id="profile"></canvas><figcaption>Profile</figcaption></figure>
-        <figure><canvas id="back"></canvas><figcaption>Caseback</figcaption></figure>
+        <figure data-view="profile" title="Click to enlarge"><canvas id="profile"></canvas><figcaption>Profile</figcaption></figure>
+        <figure data-view="back" title="Click to enlarge"><canvas id="back"></canvas><figcaption>Caseback</figcaption></figure>
       </div>
     </div>
   </section>
   <aside class="panel" id="panel"></aside>
 </main>
+</div>
 
 <div id="render" class="render-overlay" hidden>
   <div id="glwrap"></div>
   <div class="hud-top">
     <div class="hud-title"><div id="hudBrand"></div><small id="hudRef"></small></div>
+    <div class="hud-size" id="hudSize"></div>
     <div class="hud-right">
       <button id="rClose" class="glass">← Back to builder</button>
       <details class="lightpanel"><summary>Lighting</summary><div id="rLightPanel"></div></details>
+      <label class="glass wrist" id="rWrist" hidden>Wrist <span id="rWristVal"></span><input type="range" id="rWristIn" min="140" max="220" step="5"></label>
     </div>
   </div>
+  <div class="hint" id="rHint"><span data-k="aim"><b>Left click</b> to aim</span><span data-k="move"><b>Right click</b> to move</span></div>
   <div class="hud-bottom">
-    <button class="glass" id="rRotate">Turntable: on</button>
-    <button class="glass" id="rExplode">Exploded view</button>
-    <button class="glass" id="rLights">Lights out (lume)</button>
-    <button class="glass" id="rVitrine">Vitrine: off</button>
-    <button class="glass" id="rPillow">Cushion: cream</button>
-    <button class="glass" id="rShot">Save image</button>
-    <button class="glass gold" id="rSpec">Spec sheet</button>
+    <div class="row" id="rAngles"><small>Angle</small></div>
+    <div class="row" id="rModes"><small>Display</small></div>
+    <div class="row">
+      <button class="glass" id="rRotate">Turntable: off</button>
+      <button class="glass" id="rExplode">Exploded view</button>
+      <button class="glass" id="rLights">Lights out (lume)</button>
+      <button class="glass" id="rVitrine">Vitrine: off</button>
+      <button class="glass" id="rShot">Save image</button>
+      <button class="glass gold" id="rSpec">Spec sheet</button>
+    </div>
   </div>
   <div class="loading" id="rLoading"><div class="spin"></div><p>Setting up the showcase…</p></div>
 </div>
 
+<section id="welcome" class="welcome" hidden>
+  <div class="w-card">
+    <div class="w-logo">GIGACOOK <span>HOROLOGY</span></div>
+    <div class="w-short">a GC-TIME house</div>
+    <ol class="w-lines" id="welcomeInfo">
+      <li><h2>Welcome dear watch enthusiast</h2><p><b>Gigacook Horology</b> — timepiece development since 1337.</p></li>
+      <li><h2>Where creativity meets precision</h2><p>We are the true inventors of timekeeping — suppressed by anti-time militias of that period.</p></li>
+      <li><h2>A watch you can count on, always.</h2><p>600 years later, we reemerge from the depths, brave enough to stand again — with full force.</p></li>
+    </ol>
+    <div class="w-size" id="wSize"></div>
+    <button id="btnEnter" class="render">Enter workshop <b>→</b></button>
+  </div>
+</section>
+
+<div id="zoom" class="modal zoom" hidden>
+  <figure class="zoom-box"><canvas id="zoomCanvas"></canvas><figcaption id="zoomCap"></figcaption></figure>
+</div>
+
 <div id="spec" class="modal" hidden>
-  <div class="sheet" id="sheet"></div>
+  <div class="sheet-bar"><button id="specPdf">Download PDF</button><button id="specClose">Close ✕</button></div>
+  <div class="sheet-wrap" id="sheetWrap"><div class="sheet" id="sheet"></div></div>
 </div>
 <div id="toast" role="status"></div>
 
